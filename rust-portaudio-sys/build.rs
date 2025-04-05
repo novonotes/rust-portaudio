@@ -34,6 +34,14 @@ fn main() {
 
     println!("cargo:rerun-if-env-changed=PORTAUDIO_ONLY_STATIC");
     println!("cargo:rerun-if-env-changed=PORTAUDIO_CONFIGURE_EXTRA_ARGS");
+    println!("cargo:rerun-if-env-changed=PORTAUDIO_SEARCH_PATH");
+
+    if let Ok(path) = env::var("PORTAUDIO_SEARCH_PATH") {
+        println!("cargo:rustc-link-search={}", path);
+        println!("cargo:rustc-link-lib=portaudio");
+        return;
+    }
+
     if env::var("PORTAUDIO_ONLY_STATIC").is_err() {
         // If pkg-config finds a library on the system, we are done
         if pkg_config::Config::new().atleast_version("19").find("portaudio-2.0").is_ok() {
