@@ -36,9 +36,19 @@ fn main() {
     println!("cargo:rerun-if-env-changed=PORTAUDIO_CONFIGURE_EXTRA_ARGS");
     println!("cargo:rerun-if-env-changed=PORTAUDIO_SEARCH_PATH");
 
-    if let Ok(path) = env::var("PORTAUDIO_SEARCH_PATH") {
-        println!("cargo:rustc-link-search={}", path);
-        println!("cargo:rustc-link-lib=portaudio");
+    if let Ok(search_path) = env::var("PORTAUDIO_SEARCH_PATH") {
+        if env::var("PORTAUDIO_ONLY_STATIC").is_ok() {
+            let static_lib = format!("{}/{}", search_path, platform::PORTAUDIO_STATIC_LIB_NAME);
+            ::std::fs::metadata(&static_lib).expect(&format!("{} is not found", static_lib));
+
+            println!(
+                "cargo:rustc-flags=-L native={} -l static=portaudio",
+                search_path
+            );
+        } else {
+            println!("cargo:rustc-link-search={}", search_path);
+            println!("cargo:rustc-link-lib=portaudio");
+        }
         return;
     }
 
@@ -95,6 +105,7 @@ mod unix_platform {
     pub const PORTAUDIO_URL: &'static str = "https://files.portaudio.com/archives/pa_stable_v190700_20210406.tgz";
     pub const PORTAUDIO_TAR: &'static str = "pa_stable_v190700_20210406.tgz";
     pub const PORTAUDIO_FOLDER: &'static str = "portaudio";
+    pub const PORTAUDIO_STATIC_LIB_NAME: &'static str = "libportaudio.a";
 
     pub fn download() {
         run(Command::new("curl").arg(PORTAUDIO_URL).arg("-O"));
@@ -145,6 +156,7 @@ mod platform {
     use super::unix_platform;
     use std::path::Path;
 
+    pub const PORTAUDIO_STATIC_LIB_NAME: &'static str = "libportaudio.a";
     use super::{run, err_to_panic};
 
     pub fn download() {
@@ -168,6 +180,7 @@ mod platform {
     use std::path::Path;
 
     const PORTAUDIO_DOWNLOAD_URL: &'static str = "http://www.portaudio.com";
+    pub const PORTAUDIO_STATIC_LIB_NAME: &'static str = "portaudio.lib";
 
     fn print_lib_url() {
         panic!("Don't know how to build portaudio on Windows yet. Sources and build instructions available at: {}", PORTAUDIO_DOWNLOAD_URL);
