@@ -38,8 +38,12 @@ fn main() {
 
     if let Ok(search_path) = env::var("PORTAUDIO_SEARCH_PATH") {
         if env::var("PORTAUDIO_ONLY_STATIC").is_ok() {
-            let static_lib = format!("{}/{}", search_path, platform::PORTAUDIO_STATIC_LIB_NAME);
-            ::std::fs::metadata(&static_lib).expect(&format!("{} is not found", static_lib));
+            let static_lib_path =
+                std::path::Path::new(&search_path).join(platform::PORTAUDIO_STATIC_LIB_NAME);
+
+            if !static_lib_path.is_file() {
+                panic!("Static library not found: {}", static_lib_path.display());
+            }
 
             println!(
                 "cargo:rustc-flags=-L native={} -l static=portaudio",
